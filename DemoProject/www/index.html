@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<!--
+This is an example app that demonstrates how to communicate over BLE
+(Bluetooth Low Energy) to read button press status and control LED's.
+-->
+<head>
+
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, user-scalable=no
+		initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0" />
+
+	<title>OSHChip 11/9 BLE</title>
+
+	<style>
+		@import 'ui/css/evothings-app.css';
+	</style>
+
+	<script>
+	// Redirect console.log to Evothings Workbench.
+	if (window.hyper && window.hyper.log) { console.log = hyper.log }
+	</script>
+
+	<script src="cordova.js"></script>
+	<script src="libs/jquery/jquery.js"></script>
+	<script src="libs/evothings/evothings.js"></script>
+	<script src="libs/evothings/nordic-nRF51-ble/nordic-nRF51-ble.js"></script>
+
+</head>
+
+<body ontouchstart="">
+<!-- ontouchstart="" enables low-delay CSS transitions. -->
+
+	<header>
+		<button class="back" onclick="history.back()">
+			<img src="ui/images/arrow-left.svg" />
+		</button>
+
+		<img class="logotype" src="ui/images/logo.svg" alt="Evothings" />
+
+		<!--<button class="menu" onclick=""><img src="ui/images/menu.svg" /></button>-->
+	</header>
+
+	<h1>OSHChip 11/9 BLE </h1>
+
+	<!--removed jl img src="nRF51-DK.jpg" style="max-height:20%;" /-->
+
+	<p id="info">Initializing software</p>
+
+	<button id="button-connect" class="blue wide"
+		onclick="app.connectOrDisconnect()">CONNECT</button>
+
+	<br />
+<!--
+	<button class="green quarter" onclick="app.ledOn(0)">LED1 ON</button>
+	<button class="green quarter" onclick="app.ledOn(1)">LED2 ON</button>
+	<button class="green quarter" onclick="app.ledOn(2)">LED3 ON</button>
+	<button class="green quarter" onclick="app.ledOn(3)">LED4 ON</button>
+
+	<button class="red quarter" onclick="app.ledOff(0)">LED1 OFF</button>
+	<button class="red quarter" onclick="app.ledOff(1)">LED2 OFF</button>
+	<button class="red quarter" onclick="app.ledOff(2)">LED3 OFF</button>
+	<button class="red quarter" onclick="app.ledOff(3)">LED4 OFF</button>
+	
+	<button id="button-state" class="black wide">BUTTON STATE: 0</button> -->
+	
+	<img id="led0" alt="" src="red led.jpg" onmouseover="this.style.cursor='pointer'" onclick="app.toggle_img(0)"   />
+	<img align="right" id="btn0" alt="" src="pushbutton up.jpg" onmouseover="this.style.cursor='pointer'" onclick="chngimg()"  /> <br>
+	<img id="led1" alt="" src="red led.jpg" onmouseover="this.style.cursor='pointer'" onclick="app.toggle_img(1)"   />
+	<img align="right" id="btn1" alt="" src="pushbutton up.jpg" onmouseover="this.style.cursor='pointer'" onclick="chngimg()"  /> <br>
+	<img id="led2" alt="" src="red led.jpg" onmouseover="this.style.cursor='pointer'" onclick="app.toggle_img(2)"   />
+	<img align="right" id="btn2" alt="" src="pushbutton up.jpg" onmouseover="this.style.cursor='pointer'" onclick="chngimg()"  /> <br>
+	<img id="led3" alt="" src="red led.jpg" onmouseover="this.style.cursor='pointer'" onclick="app.toggle_img(3)"   />
+	<img align="right" id="btn3" alt="" src="pushbutton up.jpg" onmouseover="this.style.cursor='pointer'" onclick="chngimg()"  /> <br>
+	<img id="led4" alt="" src="red led.jpg" onmouseover="this.style.cursor='pointer'" onclick="app.toggle_img(4)"   />
+	<img align="right" id="btn4" alt="" src="pushbutton up.jpg" onmouseover="this.style.cursor='pointer'" onclick="chngimg()"  /> <br>
+	<img id="led5" alt="" src="red led.jpg" onmouseover="this.style.cursor='pointer'" onclick="app.toggle_img(5)"   />
+	<img align="right" id="btn5" alt="" src="pushbutton up.jpg" onmouseover="this.style.cursor='pointer'" onclick="chngimg()"  /> <br>
+	<img id="led6" alt="" src="red led.jpg" onmouseover="this.style.cursor='pointer'" onclick="app.toggle_img(6)"   />
+	<img align="right" id="btn6" alt="" src="pushbutton up.jpg" onmouseover="this.style.cursor='pointer'" onclick="chngimg()"  /> <br>
+	
+	
+	<p id="data">Not connected to the nRF51-DK</p>
+
+	<script>
+	// Short name for nRF51-DK BLE library.
+	var nRF51_ble = evothings.nRF51_ble;
+	var led_state = 0; // we need to store the state to turn on/off LED's
+
+	// Application object.
+	var app = {};
+
+	// Connected device.
+	app.device = null;
+	
+	app.toggle_img = function (num) {
+		if ((1 << num) & led_state) {				//led is on, turn it off
+			document.getElementById('led' + num).src  = 'red led.jpg';
+			app.ledOff(num);
+		} else {
+			document.getElementById('led' + num).src = 'red led lit.jpg';
+			app.ledOn(num);
+		}
+	}
+
+
+	// Turn on LED.
+	app.ledOn = function(num)
+	{
+		led_state |= (1 << num);
+		app.device &&
+		app.device.writeDataArray(new Uint8Array([led_state]));
+	};
+
+	// Turn off LED.
+	app.ledOff = function(num)
+	{
+		led_state &= ~(1 << num);
+		app.device &&
+		app.device.writeDataArray(new Uint8Array([led_state]));
+	};
+
+	app.showMessage = function(info)
+	{
+		$('#info').html(info);
+	};
+
+	app.showData = function(data)
+	{
+		$('#data').html(data);
+	};
+
+	// Called when BLE and other native functions are available.
+	app.onDeviceReady = function()
+	{
+		app.showMessage('Press the CONNECT button to scan and connect with the nRF51-DK');
+	};
+
+	app.connectOrDisconnect = function()
+	{
+		if (app.device == null)
+		{
+			app.connect();
+
+			$('#button-connect').html('SCANNING');
+		}
+		else
+		{
+			nRF51_ble.close();
+
+			app.device = null;
+			app.showMessage('Press the CONNECT button to scan and connect with the nRF51-DK');
+			app.showData('Not connected to the nRF51-DK')
+			$('#button-connect').html('CONNECT');
+		}
+	};
+
+	app.connect = function()
+	{
+		app.showMessage('Scanning for the nRF51-DK');
+
+		nRF51_ble.connect(
+	     	'nRF51-DK', // BLE name
+			function(device)
+			{
+				app.device = device;
+				app.showMessage('Connected to the nRF51-DK');
+				app.showData('Press the physical buttons on the nRF51-DK and control the LEDs above');
+				$('#button-connect').html('DISCONNECT');
+
+				device.setNotification(function(data)
+				{
+					$('#button-state').html('BUTTON STATE: ' +new Uint8Array(data)[0]);
+					var seedata = new Uint8Array(data)[0];
+				});
+			},
+			function(errorCode)
+			{
+				app.device = null;
+				app.showMessage('Press the CONNECT button to scan and connect with the nRF51-DK');
+				app.showData('Unable to connect to the nRF51-DK - error: ' + errorCode);
+				$('#button-connect').html('CONNECT');
+			});
+	};
+
+	document.addEventListener('deviceready', app.onDeviceReady, false);
+	</script>
+
+</body>
+</html>
