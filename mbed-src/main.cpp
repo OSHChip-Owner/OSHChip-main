@@ -190,7 +190,7 @@ int main()
     INFO_NL(">> configured advertising type, payload and interval");
 
     // configure our callbacks
-    ble.onDisconnection(onDisconnection);
+//    ble.onDisconnection(onDisconnection);  causes compile failure--do without jl 11/23/15
     ble.onConnection(onConnection);
     ble.onDataWritten(onDataWritten);
     INFO_NL(">> registered for callbacks");
